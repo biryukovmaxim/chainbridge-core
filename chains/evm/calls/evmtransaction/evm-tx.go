@@ -78,7 +78,7 @@ func (a *TX) Hash() common.Hash {
 }
 
 // newTransactorWithChainID is a utility method to easily create a transaction signer
-// for an evmclient.Signer.
+// for an tvmclient.Signer.
 // Mostly copies bind.NewKeyedTransactorWithChainID but sings with the provided signer
 // instead of a privateKey
 func newTransactorWithChainID(s evmclient.Signer, chainID *big.Int) (*bind.TransactOpts, error) {
