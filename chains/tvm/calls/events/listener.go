@@ -17,16 +17,16 @@ const (
 	DepositEventName = "Deposit"
 )
 
-type Listener struct {
+type Fetcher struct {
 	baseUrl string
 	apiKey  string
 }
 
-func NewListener(baseUrl, apiKey string) *Listener {
-	return &Listener{baseUrl: baseUrl, apiKey: apiKey}
+func NewFetcher(baseUrl, apiKey string) *Fetcher {
+	return &Fetcher{baseUrl: baseUrl, apiKey: apiKey}
 }
 
-func (l *Listener) FetchDeposits(ctx context.Context, contractAddress address.Address, startTime, endTime *time.Time) ([]Deposit, error) {
+func (l *Fetcher) FetchDeposits(ctx context.Context, contractAddress address.Address, startTime, endTime *time.Time) ([]Deposit, error) {
 	// https://api.shasta.trongrid.io/v1/contracts/TZ2xAEKqHup6hzEQGPhmXQFiXBDBQxSVZG/events?max_block_timestamp=1676642178000&min_block_timestamp=1676642178000&only_confirmed=true&event_name=Deposit
 	u := fmt.Sprintf(
 		"%s/contracts/%s/%s",

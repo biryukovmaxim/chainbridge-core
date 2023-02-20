@@ -16,7 +16,7 @@ const (
 )
 
 func TestFetchDeposits(t *testing.T) {
-	l := NewListener(testnet, testKey)
+	l := NewFetcher(testnet, testKey)
 	addr, err := address.Base58ToAddress(BridgeAddress)
 	require.NoError(t, err)
 	startTime := time.UnixMilli(1676642178000)

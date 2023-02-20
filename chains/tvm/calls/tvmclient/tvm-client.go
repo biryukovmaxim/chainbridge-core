@@ -7,17 +7,25 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/fbsobreira/gotron-sdk/pkg/client"
+	"google.golang.org/grpc"
 )
 
 type TronClient struct {
-	grpc      client.GrpcClient
+	grpc      *client.GrpcClient
 	signer    Signer
 	nonce     *big.Int
 	nonceLock sync.Mutex
 }
 
-func NewTronEmptyClient() *TronClient {
-	return &TronClient{}
+func (c *TronClient) Start() error {
+	return c.grpc.Start(grpc.WithInsecure())
+}
+func (c *TronClient) Stop() {
+	c.grpc.Stop()
+}
+
+func NewTronClient(network string) *TronClient {
+	return &TronClient{grpc: client.NewGrpcClient("grpc.shasta.trongrid.io:50051")}
 }
 
 type Signer interface {

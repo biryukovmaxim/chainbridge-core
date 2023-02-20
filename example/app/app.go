@@ -6,11 +6,11 @@ package app
 import (
 	"context"
 	"fmt"
+	"math/big"
 	"os"
 	"os/signal"
 	"syscall"
-
-	secp256k1 "github.com/ethereum/go-ethereum/crypto"
+	"time"
 
 	"github.com/ChainSafe/chainbridge-core/chains/evm"
 	"github.com/ChainSafe/chainbridge-core/chains/evm/calls/contracts/bridge"
@@ -20,6 +20,10 @@ import (
 	"github.com/ChainSafe/chainbridge-core/chains/evm/calls/transactor/signAndSend"
 	"github.com/ChainSafe/chainbridge-core/chains/evm/executor"
 	"github.com/ChainSafe/chainbridge-core/chains/evm/listener"
+	"github.com/ChainSafe/chainbridge-core/chains/tvm"
+	tvmEvents "github.com/ChainSafe/chainbridge-core/chains/tvm/calls/events"
+	"github.com/ChainSafe/chainbridge-core/chains/tvm/calls/tvmclient"
+	tvmListener "github.com/ChainSafe/chainbridge-core/chains/tvm/listener"
 	"github.com/ChainSafe/chainbridge-core/config"
 	"github.com/ChainSafe/chainbridge-core/config/chain"
 	secp256k12 "github.com/ChainSafe/chainbridge-core/crypto/secp256k1"
@@ -30,6 +34,8 @@ import (
 	"github.com/ChainSafe/chainbridge-core/relayer"
 	"github.com/ChainSafe/chainbridge-core/store"
 	"github.com/ethereum/go-ethereum/common"
+	secp256k1 "github.com/ethereum/go-ethereum/crypto"
+	"github.com/fbsobreira/gotron-sdk/pkg/address"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
 )
@@ -62,7 +68,7 @@ func Run() error {
 				}
 
 				kp := secp256k12.NewKeypair(*privateKey)
-
+				fmt.Println(kp.Address())
 				client, err := evmclient.NewEVMClient(config.GeneralChainConfig.Endpoint, kp)
 				if err != nil {
 					panic(err)
@@ -97,8 +103,32 @@ func Run() error {
 
 				chains = append(chains, chain)
 			}
+		case "tvm":
+			const (
+				BridgeAddress = "TPH9cWgafMHhGmzL3ccaWX5gF7e8kbicZr"
+				testnet       = "https://api.shasta.trongrid.io/v1"
+				testKey       = "bc78f8bb-2e8d-4e18-9165-e4777e6e3fb6"
+			)
+			eventListener := tvmEvents.NewFetcher(testnet, testKey)
+			depositHandler := tvmListener.NewTronDepositHandler(tvm.DummyMatcher{})
+			//depositHandler.RegisterDepositHandler(config.Erc20Handler, listener.Erc20DepositHandler)
+			//depositHandler.RegisterDepositHandler(config.Erc721Handler, listener.Erc721DepositHandler)
+			//depositHandler.RegisterDepositHandler(config.GenericHandler, listener.GenericDepositHandler)
+			eventHandlers := make([]tvmListener.EventHandler, 0)
+			brAddr, _ := address.Base58ToAddress(BridgeAddress)
+			eventHandlers = append(eventHandlers, tvmListener.NewDepositEventHandler(eventListener, depositHandler, brAddr, 2))
+			client := tvmclient.NewTronClient("")
+			if err := client.Start(); err != nil {
+				log.Panic().Err(err)
+			}
+			defer client.Stop()
+			evmListener := tvmListener.NewTVMListener(client, eventHandlers, blockstore, 2, time.Duration(0), big.NewInt(1), big.NewInt(10))
+
+			newChain := tvm.NewTVMChain(evmListener, tvm.DummyExecutor{}, blockstore, 2, big.NewInt(31494927), false, false)
+			chains = append(chains, newChain)
 		default:
-			panic(fmt.Errorf("type '%s' not recognized", chainConfig["type"]))
+			log.Warn().Msgf("type '%s' not recognized", chainConfig["type"])
+			continue
 		}
 	}
 
