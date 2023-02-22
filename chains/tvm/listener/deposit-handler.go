@@ -60,9 +60,9 @@ func (e *TronDepositHandler) RegisterDepositHandler(handlerAddress string, handl
 	if handlerAddress == "" {
 		return
 	}
-
+	addr, _ := common.Base58ToAddress(handlerAddress)
 	log.Info().Msgf("Registered deposit handler for address %s", handlerAddress)
-	e.depositHandlers[toFixed(common.HexToAddress(handlerAddress))] = handler
+	e.depositHandlers[toFixed(addr)] = handler
 }
 
 // Erc20DepositHandler converts data pulled from event logs into message

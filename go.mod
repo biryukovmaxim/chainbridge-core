@@ -1,6 +1,8 @@
 module github.com/ChainSafe/chainbridge-core
 
-go 1.17
+go 1.19
+
+replace github.com/fbsobreira/gotron-sdk => /home/maksim/GolandProjects/gotron-sdk
 
 require (
 	github.com/centrifuge/go-substrate-rpc-client v2.0.0+incompatible
@@ -26,6 +28,7 @@ require (
 )
 
 require (
+	github.com/karalabe/hid v1.0.0 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/pborman/uuid v1.2.1 // indirect
 	github.com/shengdoushi/base58 v1.0.0 // indirect
@@ -88,8 +91,8 @@ require (
 	golang.org/x/sys v0.0.0-20211102061401-a2f17f7b995c // indirect
 	golang.org/x/text v0.3.6 // indirect
 	google.golang.org/genproto v0.0.0-20210828152312-66f60bf46e71 // indirect
-	google.golang.org/grpc v1.41.0 // indirect
-	google.golang.org/protobuf v1.27.1 // indirect
+	google.golang.org/grpc v1.41.0
+	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/ini.v1 v1.63.2 // indirect
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect

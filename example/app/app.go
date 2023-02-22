@@ -5,7 +5,6 @@ package app
 
 import (
 	"context"
-	"fmt"
 	"math/big"
 	"os"
 	"os/signal"
@@ -21,6 +20,7 @@ import (
 	"github.com/ChainSafe/chainbridge-core/chains/evm/executor"
 	"github.com/ChainSafe/chainbridge-core/chains/evm/listener"
 	"github.com/ChainSafe/chainbridge-core/chains/tvm"
+	tvmBridge "github.com/ChainSafe/chainbridge-core/chains/tvm/calls/contracts/bridge"
 	tvmEvents "github.com/ChainSafe/chainbridge-core/chains/tvm/calls/events"
 	"github.com/ChainSafe/chainbridge-core/chains/tvm/calls/tvmclient"
 	tvmListener "github.com/ChainSafe/chainbridge-core/chains/tvm/listener"
@@ -36,8 +36,10 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	secp256k1 "github.com/ethereum/go-ethereum/crypto"
 	"github.com/fbsobreira/gotron-sdk/pkg/address"
+	tronClient "github.com/fbsobreira/gotron-sdk/pkg/client"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
+	"google.golang.org/grpc"
 )
 
 func Run() error {
@@ -68,7 +70,6 @@ func Run() error {
 				}
 
 				kp := secp256k12.NewKeypair(*privateKey)
-				fmt.Println(kp.Address())
 				client, err := evmclient.NewEVMClient(config.GeneralChainConfig.Endpoint, kp)
 				if err != nil {
 					panic(err)
@@ -105,23 +106,42 @@ func Run() error {
 			}
 		case "tvm":
 			const (
-				BridgeAddress = "TPH9cWgafMHhGmzL3ccaWX5gF7e8kbicZr"
-				testnet       = "https://api.shasta.trongrid.io/v1"
-				testKey       = "bc78f8bb-2e8d-4e18-9165-e4777e6e3fb6"
+				bridgeHex      = "TPH9cWgafMHhGmzL3ccaWX5gF7e8kbicZr"
+				testnet        = "https://api.shasta.trongrid.io/v1"
+				testKey        = "bc78f8bb-2e8d-4e18-9165-e4777e6e3fb6"
+				handlerAddress = "TBq9Rc5mPtq7tLHBxnHUXGkuaEDxrKX3ya"
+				testToken      = "THG7rdaCKUN2zS4Kq9bbBu6nxSXQKkNv7i"
 			)
 			eventListener := tvmEvents.NewFetcher(testnet, testKey)
-			depositHandler := tvmListener.NewTronDepositHandler(tvm.DummyMatcher{})
-			//depositHandler.RegisterDepositHandler(config.Erc20Handler, listener.Erc20DepositHandler)
+			cfg, err := chain.NewEVMConfig(chainConfig)
+			if err != nil {
+				panic(err)
+			}
+
+			privateKey, err := secp256k1.HexToECDSA(cfg.GeneralChainConfig.Key)
+			if err != nil {
+				panic(err)
+			}
+			signer := tvmclient.NewAdapter(secp256k12.NewKeypair(*privateKey))
+			grpcClient := tronClient.NewGrpcClient("grpc.shasta.trongrid.io:50051")
+			if err := grpcClient.Start(grpc.WithInsecure()); err != nil {
+				log.Panic().Err(err)
+			}
+			defer grpcClient.Stop()
+
+			client := tvmclient.NewTronClient(grpcClient)
+			bridgeAddress, err := address.Base58ToAddress(bridgeHex)
+			if err != nil {
+				log.Panic().Err(err)
+			}
+			contract := tvmBridge.NewBridgeContract(grpcClient, signer, bridgeAddress)
+			depositHandler := tvmListener.NewTronDepositHandler(contract)
+			depositHandler.RegisterDepositHandler(handlerAddress, tvmListener.Erc20DepositHandler)
 			//depositHandler.RegisterDepositHandler(config.Erc721Handler, listener.Erc721DepositHandler)
 			//depositHandler.RegisterDepositHandler(config.GenericHandler, listener.GenericDepositHandler)
 			eventHandlers := make([]tvmListener.EventHandler, 0)
-			brAddr, _ := address.Base58ToAddress(BridgeAddress)
-			eventHandlers = append(eventHandlers, tvmListener.NewDepositEventHandler(eventListener, depositHandler, brAddr, 2))
-			client := tvmclient.NewTronClient("")
-			if err := client.Start(); err != nil {
-				log.Panic().Err(err)
-			}
-			defer client.Stop()
+			eventHandlers = append(eventHandlers, tvmListener.NewDepositEventHandler(eventListener, depositHandler, bridgeAddress, 2))
+
 			evmListener := tvmListener.NewTVMListener(client, eventHandlers, blockstore, 2, time.Duration(0), big.NewInt(1), big.NewInt(10))
 
 			newChain := tvm.NewTVMChain(evmListener, tvm.DummyExecutor{}, blockstore, 2, big.NewInt(31494927), false, false)

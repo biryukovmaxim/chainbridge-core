@@ -2,34 +2,23 @@ package tvmclient
 
 import (
 	"math/big"
-	"sync"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/fbsobreira/gotron-sdk/pkg/address"
 	"github.com/fbsobreira/gotron-sdk/pkg/client"
-	"google.golang.org/grpc"
 )
 
 type TronClient struct {
-	grpc      *client.GrpcClient
-	signer    Signer
-	nonce     *big.Int
-	nonceLock sync.Mutex
+	grpc *client.GrpcClient
 }
 
-func (c *TronClient) Start() error {
-	return c.grpc.Start(grpc.WithInsecure())
-}
-func (c *TronClient) Stop() {
-	c.grpc.Stop()
-}
-
-func NewTronClient(network string) *TronClient {
-	return &TronClient{grpc: client.NewGrpcClient("grpc.shasta.trongrid.io:50051")}
+func NewTronClient(grpc *client.GrpcClient) *TronClient {
+	return &TronClient{grpc: grpc}
 }
 
 type Signer interface {
-	CommonAddress() common.Address
+	CommonAddress() address.Address
 
 	// Sign calculates an ECDSA signature.
 	// The produced signature must be in the [R || S || V] format where V is 0 or 1.
