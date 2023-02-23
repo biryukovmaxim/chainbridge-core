@@ -22,10 +22,10 @@ const (
 )
 
 type ProposalStatus struct {
-	Status        uint8
-	YesVotes      *big.Int
-	YesVotesTotal uint8
-	ProposedBlock *big.Int
+	Status        uint8    `mapstructure:"_status"`
+	YesVotes      *big.Int `mapstructure:"_yesVotes"`
+	YesVotesTotal uint8    `mapstructure:"_yesVotesTotal"`
+	ProposedBlock *big.Int `mapstructure:"_proposedBlock"`
 }
 
 const (

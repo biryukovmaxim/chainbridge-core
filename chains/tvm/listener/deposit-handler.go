@@ -4,6 +4,7 @@ import (
 	"errors"
 	"math/big"
 
+	"github.com/ChainSafe/chainbridge-core/chains/tvm/utils"
 	"github.com/ChainSafe/chainbridge-core/relayer/message"
 	"github.com/ChainSafe/chainbridge-core/types"
 	"github.com/rs/zerolog/log"
@@ -48,7 +49,7 @@ func (e *TronDepositHandler) HandleDeposit(sourceID, destID uint8, depositNonce 
 
 // matchAddressWithHandlerFunc matches a handler address with an associated handler function
 func (e *TronDepositHandler) matchAddressWithHandlerFunc(handlerAddress common.Address) (DepositHandlerFunc, error) {
-	hf, ok := e.depositHandlers[toFixed(handlerAddress)]
+	hf, ok := e.depositHandlers[utils.ToFixed(handlerAddress)]
 	if !ok {
 		return nil, errors.New("no corresponding deposit handler for this address exists")
 	}
@@ -62,7 +63,7 @@ func (e *TronDepositHandler) RegisterDepositHandler(handlerAddress string, handl
 	}
 	addr, _ := common.Base58ToAddress(handlerAddress)
 	log.Info().Msgf("Registered deposit handler for address %s", handlerAddress)
-	e.depositHandlers[toFixed(addr)] = handler
+	e.depositHandlers[utils.ToFixed(addr)] = handler
 }
 
 // Erc20DepositHandler converts data pulled from event logs into message
@@ -169,9 +170,4 @@ func Erc721DepositHandler(sourceID, destId uint8, nonce uint64, resourceID types
 		meta.Priority = priority[0]
 	}
 	return message.NewMessage(sourceID, destId, nonce, resourceID, message.NonFungibleTransfer, payload, meta), nil
-}
-
-func toFixed(address common.Address) [21]byte {
-	res := (*[21]byte)(address)
-	return *res
 }
