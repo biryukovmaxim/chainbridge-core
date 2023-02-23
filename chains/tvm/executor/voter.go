@@ -21,9 +21,6 @@ const (
 
 type ChainClient interface {
 	CommonAddress() address.Address
-	//SubscribePendingTransactions(ctx context.Context, ch chan<- common.Hash) (*rpc.ClientSubscription, error)
-	//TransactionByHash(ctx context.Context, hash common.Hash) (tx *ethereumTypes.Transaction, isPending bool, err error)
-	//calls.ContractCallerDispatcher
 }
 
 type MessageHandler interface {
@@ -38,20 +35,20 @@ type BridgeContract interface {
 	GetThreshold() (uint8, error)
 }
 
-type EVMVoter struct {
+type TVMVoter struct {
 	mh                   MessageHandler
 	client               ChainClient
 	bridgeContract       BridgeContract
 	pendingProposalVotes map[common.Hash]uint8
 }
 
-// NewVoter creates an instance of EVMVoter that votes for proposal on chain.
+// NewVoter creates an instance of TVMVoter that votes for proposal on chain.
 //
 // It is created without pending proposal subscription and is a fallback
 // for nodes that don't support pending transaction subscription and will vote
 // on proposals that already satisfy threshold.
-func NewVoter(mh MessageHandler, client ChainClient, bridgeContract BridgeContract) *EVMVoter {
-	return &EVMVoter{
+func NewVoter(mh MessageHandler, client ChainClient, bridgeContract BridgeContract) *TVMVoter {
+	return &TVMVoter{
 		mh:                   mh,
 		client:               client,
 		bridgeContract:       bridgeContract,
@@ -61,7 +58,7 @@ func NewVoter(mh MessageHandler, client ChainClient, bridgeContract BridgeContra
 
 // Execute checks if relayer already voted and is threshold
 // satisfied and casts a vote if it isn't.
-func (v *EVMVoter) Execute(m *message.Message) error {
+func (v *TVMVoter) Execute(m *message.Message) error {
 	prop, err := v.mh.HandleMessage(m)
 	if err != nil {
 		return err
@@ -106,7 +103,7 @@ func (v *EVMVoter) Execute(m *message.Message) error {
 // proposal votes from other relayers.
 // Only works properly in conjuction with NewVoterWithSubscription as without a subscription
 // no pending txs would be received and pending vote count would be 0.
-func (v *EVMVoter) shouldVoteForProposal(prop *proposal.Proposal, tries int) (bool, error) {
+func (v *TVMVoter) shouldVoteForProposal(prop *proposal.Proposal, tries int) (bool, error) {
 	propID := prop.GetID()
 	defer delete(v.pendingProposalVotes, propID)
 
@@ -139,7 +136,7 @@ func (v *EVMVoter) shouldVoteForProposal(prop *proposal.Proposal, tries int) (bo
 }
 
 // repetitiveSimulateVote repeatedly tries(5 times) to simulate vore proposal call until it succeeds
-func (v *EVMVoter) repetitiveSimulateVote(prop *proposal.Proposal, tries int) error {
+func (v *TVMVoter) repetitiveSimulateVote(prop *proposal.Proposal, tries int) error {
 	err := v.bridgeContract.SimulateVoteProposal(prop)
 	if err != nil {
 		if tries < maxSimulateVoteChecks {

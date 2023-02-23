@@ -23,6 +23,7 @@ import (
 	tvmBridge "github.com/ChainSafe/chainbridge-core/chains/tvm/calls/contracts/bridge"
 	tvmEvents "github.com/ChainSafe/chainbridge-core/chains/tvm/calls/events"
 	"github.com/ChainSafe/chainbridge-core/chains/tvm/calls/tvmclient"
+	tvmExecutor "github.com/ChainSafe/chainbridge-core/chains/tvm/executor"
 	tvmListener "github.com/ChainSafe/chainbridge-core/chains/tvm/listener"
 	"github.com/ChainSafe/chainbridge-core/config"
 	"github.com/ChainSafe/chainbridge-core/config/chain"
@@ -144,7 +145,11 @@ func Run() error {
 
 			evmListener := tvmListener.NewTVMListener(client, eventHandlers, blockstore, 2, time.Duration(0), big.NewInt(1), big.NewInt(10))
 
-			newChain := tvm.NewTVMChain(evmListener, tvm.DummyExecutor{}, blockstore, 2, big.NewInt(31494927), false, false)
+			mh := tvmExecutor.NewTVMMessageHandler(contract)
+			mh.RegisterMessageHandler(handlerAddress, tvmExecutor.ERC20MessageHandler)
+
+			voter := tvmExecutor.NewVoter(mh, signer, contract)
+			newChain := tvm.NewTVMChain(evmListener, voter, blockstore, 2, big.NewInt(31494927), false, false)
 			chains = append(chains, newChain)
 		default:
 			log.Warn().Msgf("type '%s' not recognized", chainConfig["type"])
