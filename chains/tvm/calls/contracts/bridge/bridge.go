@@ -56,6 +56,9 @@ func (c *BridgeContract) IsProposalVotedBy(by address.Address, p *proposal.Propo
 		"",
 		0,
 	)
+	if len(tx.Result.Message) != 0 {
+		log.Error().Bytes("message", tx.Result.Message)
+	}
 	if err != nil {
 		return false, err
 	}
@@ -73,12 +76,18 @@ func (c *BridgeContract) VoteProposal(proposal *proposal.Proposal) (*common.Hash
 	if err != nil {
 		return nil, err
 	}
+	if len(exTx.Result.Message) != 0 {
+		log.Error().Bytes("message", exTx.Result.Message)
+	}
 	tx := exTx.Transaction
 	data, err := proto.Marshal(tx.GetRawData())
 	if err != nil {
 		return nil, err
 	}
-	signature, err := c.signer.Sign(data)
+	h256h := sha256.New()
+	h256h.Write(data)
+	txHash := common.BytesToHash(h256h.Sum(nil))
+	signature, err := c.signer.Sign(txHash.Bytes())
 	if err != nil {
 		return nil, err
 	}
@@ -90,10 +99,6 @@ func (c *BridgeContract) VoteProposal(proposal *proposal.Proposal) (*common.Hash
 	if result.Code != 0 {
 		return nil, fmt.Errorf("bad transaction: %v", string(result.GetMessage()))
 	}
-
-	h256h := sha256.New()
-	h256h.Write(data)
-	txHash := common.BytesToHash(h256h.Sum(nil))
 
 	return &txHash, c.txConfirmation(txHash.Hex())
 }
@@ -120,15 +125,17 @@ func (c *BridgeContract) voteProposal(p *proposal.Proposal) (*api.TransactionExt
 		c.contractAddress.String(),
 		"voteProposal(uint8,uint64,bytes32,bytes)",
 		params,
-		0,
+		4000000000,
 		0,
 		"",
 		0,
 	)
+	if len(tx.Result.Message) != 0 {
+		log.Error().Bytes("message", tx.Result.Message)
+	}
 	if err != nil {
 		return nil, err
 	}
-
 	return tx, nil
 }
 
@@ -206,6 +213,9 @@ func (c *BridgeContract) GetThreshold() (uint8, error) {
 	if err != nil {
 		return 0, err
 	}
+	if len(tx.Result.Message) != 0 {
+		log.Error().Bytes("message", tx.Result.Message)
+	}
 	lastIdx := len(tx.ConstantResult[0]) - 1
 	return tx.ConstantResult[0][lastIdx], nil
 }
@@ -233,7 +243,9 @@ func (c *BridgeContract) GetHandlerAddressForResourceID(resourceID types.Resourc
 	if err != nil {
 		return nil, err
 	}
-
+	if len(tx.Result.Message) != 0 {
+		log.Error().Bytes("message", tx.Result.Message)
+	}
 	return append([]byte{address.TronBytePrefix}, common.TrimLeftZeroes(tx.ConstantResult[0])...), nil
 }
 

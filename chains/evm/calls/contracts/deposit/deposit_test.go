@@ -2,19 +2,21 @@ package deposit
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"fmt"
+	"math/big"
 	"testing"
 
+	callsUtil "github.com/ChainSafe/chainbridge-core/chains/evm/calls"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/fbsobreira/gotron-sdk/pkg/address"
+	"github.com/stretchr/testify/require"
 )
 
 const data = "00000000000000000000000000000000000000000000071cc833b3e9e905e0000000000000000000000000000000000000000000000000000000000000000014a79e8a38afda1f6106565611156655dc779499b7"
 
 func TestDepositDecoding(t *testing.T) {
-	//data = append(data, math.PaddedBigBytes(big.NewInt(int64(len(destRecipient))), 32)...) // length of recipient
-	//data = append(data, destRecipient...)
-	//fmt.Println(len(data))
-
 	bts := common.Hex2Bytes(data)
 	r := bytes.NewReader(bts)
 	amountBts := make([]byte, 32)
@@ -25,4 +27,23 @@ func TestDepositDecoding(t *testing.T) {
 	r.Read(addressBts)
 
 	fmt.Println(common.IsHexAddress(common.BytesToAddress(addressBts).Hex()))
+}
+
+func TestEncodingTrcDeposit(t *testing.T) {
+	base58 := "TE2gVgMNYvD6UABUUSYeLk1y6ePhrBer7Q"
+	amount := "0.00014"
+	addr, err := address.Base58ToAddress(base58)
+	require.NoError(t, err)
+	realAmount, err := callsUtil.UserAmountToWei(amount, big.NewInt(18))
+	require.NoError(t, err)
+
+	data := ConstructErc20DepositData(addr.Bytes(), realAmount)
+	hexData := hexutil.Encode(data)
+	fmt.Println(hexData)
+
+	h256h := sha256.New()
+	h256h.Write(data)
+	hash := h256h.Sum(nil)
+	hexHash := hexutil.Encode(hash)
+	fmt.Println(hexHash)
 }
