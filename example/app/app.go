@@ -111,7 +111,7 @@ func Run() error {
 				testnet        = "https://api.shasta.trongrid.io/v1"
 				testKey        = "bc78f8bb-2e8d-4e18-9165-e4777e6e3fb6"
 				handlerAddress = "TBq9Rc5mPtq7tLHBxnHUXGkuaEDxrKX3ya"
-				testToken      = "THG7rdaCKUN2zS4Kq9bbBu6nxSXQKkNv7i"
+				testToken      = "TUfR8iZ1dPqndiSJv97vSbvkJcvtHLxxXr"
 			)
 			eventListener := tvmEvents.NewFetcher(testnet, testKey)
 			cfg, err := chain.NewEVMConfig(chainConfig)

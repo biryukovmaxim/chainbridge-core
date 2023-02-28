@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/ChainSafe/chainbridge-core/chains/evm/calls/contracts/deposit"
 	"github.com/ChainSafe/chainbridge-core/chains/tvm/calls/tvmclient"
 	"github.com/ChainSafe/chainbridge-core/chains/tvm/executor/proposal"
 	"github.com/ChainSafe/chainbridge-core/relayer/message"
@@ -22,6 +23,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/mitchellh/mapstructure"
 	"github.com/rs/zerolog/log"
+	"github.com/shengdoushi/base58"
 )
 
 type BridgeContract struct {
@@ -80,13 +82,10 @@ func (c *BridgeContract) VoteProposal(proposal *proposal.Proposal) (*common.Hash
 		log.Error().Bytes("message", exTx.Result.Message)
 	}
 	tx := exTx.Transaction
-	data, err := proto.Marshal(tx.GetRawData())
+	txHash, err := txToHash(exTx)
 	if err != nil {
 		return nil, err
 	}
-	h256h := sha256.New()
-	h256h.Write(data)
-	txHash := common.BytesToHash(h256h.Sum(nil))
 	signature, err := c.signer.Sign(txHash.Bytes())
 	if err != nil {
 		return nil, err
@@ -100,7 +99,20 @@ func (c *BridgeContract) VoteProposal(proposal *proposal.Proposal) (*common.Hash
 		return nil, fmt.Errorf("bad transaction: %v", string(result.GetMessage()))
 	}
 
-	return &txHash, c.txConfirmation(txHash.Hex())
+	return txHash, c.txConfirmation(txHash.Hex())
+}
+
+func txToHash(exTx *api.TransactionExtention) (*common.Hash, error) {
+	tx := exTx.Transaction
+	data, err := proto.Marshal(tx.GetRawData())
+	if err != nil {
+		return nil, err
+	}
+	h256h := sha256.New()
+	h256h.Write(data)
+	hash := common.BytesToHash(h256h.Sum(nil))
+
+	return &hash, nil
 }
 
 func (c *BridgeContract) txConfirmation(txHash string) error {
@@ -247,6 +259,83 @@ func (c *BridgeContract) GetHandlerAddressForResourceID(resourceID types.Resourc
 		log.Error().Bytes("message", tx.Result.Message)
 	}
 	return append([]byte{address.TronBytePrefix}, common.TrimLeftZeroes(tx.ConstantResult[0])...), nil
+}
+
+func (c *BridgeContract) Erc20Deposit(
+	recipient []byte,
+	amount *big.Int,
+	resourceID types.ResourceID,
+	destDomainID uint8,
+) (*common.Hash, error) {
+	log.Debug().
+		Str("recipientHex", hex.EncodeToString(recipient)).
+		Str("recipientBase58", base58.Encode(recipient, base58.BitcoinAlphabet)).
+		Str("resourceID", hexutil.Encode(resourceID[:])).
+		Str("amount", amount.String()).
+		Msgf("ERC20 deposit")
+	var data []byte
+	data = deposit.ConstructErc20DepositData(recipient, amount)
+
+	txHash, err := c.deposit(resourceID, destDomainID, data)
+	if err != nil {
+		log.Error().Err(err)
+		return nil, err
+	}
+	return txHash, err
+}
+
+func (c *BridgeContract) deposit(
+	resourceID types.ResourceID,
+	destDomainID uint8,
+	data []byte,
+) (*common.Hash, error) {
+	params := []abi.Param{
+		{"uint8": destDomainID},
+		{"bytes32": hex.EncodeToString(resourceID[:])},
+		{"bytes": hex.EncodeToString(data)},
+	}
+	addr := c.signer.CommonAddress().String()
+	fmt.Println(addr)
+	exTx, err := c.grpc.TriggerContractV2(
+		c.signer.CommonAddress().String(),
+		c.contractAddress.String(),
+		"deposit(uint8,bytes32,bytes)",
+		params,
+		4000000000,
+		0,
+		"THG7rdaCKUN2zS4Kq9bbBu6nxSXQKkNv7i",
+		200000000000000,
+	)
+
+	if len(exTx.Result.Message) != 0 {
+		log.Error().Bytes("message", exTx.Result.Message)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	if len(exTx.Result.Message) != 0 {
+		log.Error().Bytes("message", exTx.Result.Message)
+	}
+	tx := exTx.Transaction
+	txHash, err := txToHash(exTx)
+	if err != nil {
+		return nil, err
+	}
+	signature, err := c.signer.Sign(txHash.Bytes())
+	if err != nil {
+		return nil, err
+	}
+	tx.Signature = append(tx.Signature, signature)
+	result, err := c.grpc.Broadcast(tx)
+	if err != nil {
+		return nil, err
+	}
+	if result.Code != 0 {
+		return nil, fmt.Errorf("bad transaction: %v", string(result.GetMessage()))
+	}
+
+	return txHash, c.txConfirmation(txHash.Hex())
 }
 
 func idAndNonce(srcId uint8, nonce uint64) *big.Int {

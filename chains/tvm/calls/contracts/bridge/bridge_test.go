@@ -28,7 +28,7 @@ const (
 	network       = "grpc.shasta.trongrid.io:50051"
 	handlerBase58 = "TBq9Rc5mPtq7tLHBxnHUXGkuaEDxrKX3ya"
 	resourceHex   = "0x6d792d746f6b656e000000000000000000000000000000000000000000000000"
-	private       = "70a617d70d2d432ac7b1dc902160fc67b9af7e4311328d8cb987f1b7f2fa28c4"
+	private       = "96d3b1ee6ddead968abeb3dd064fd38c1f4cc08cf1aca5c1c9e6321fe8ab9207"
 )
 
 func TestMain(m *testing.M) {

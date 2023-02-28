@@ -31,10 +31,30 @@ func TestDepositDecoding(t *testing.T) {
 
 func TestEncodingTrcDeposit(t *testing.T) {
 	base58 := "TE2gVgMNYvD6UABUUSYeLk1y6ePhrBer7Q"
-	amount := "0.00014"
+	amount := "0.0002"
 	addr, err := address.Base58ToAddress(base58)
 	require.NoError(t, err)
 	realAmount, err := callsUtil.UserAmountToWei(amount, big.NewInt(18))
+	require.NoError(t, err)
+
+	data := ConstructErc20DepositData(addr.Bytes()[1:], realAmount)
+	hexData := hexutil.Encode(data)
+	fmt.Println(hexData)
+
+	h256h := sha256.New()
+	h256h.Write(data)
+	hash := h256h.Sum(nil)
+	hexHash := hexutil.Encode(hash)
+	fmt.Println(hexHash)
+}
+
+func TestEncodingErcDeposit(t *testing.T) {
+	hexed := "0xB1184d7c47eccAE188726A2C3C9AA8E2151B227A"
+	amount := "0.0012"
+	addr := common.HexToAddress(hexed)
+	realAmount, err := callsUtil.UserAmountToWei(amount, big.NewInt(18))
+	//fmt.Println(realAmount.String())
+	realAmount = big.NewInt(199999999994000)
 	require.NoError(t, err)
 
 	data := ConstructErc20DepositData(addr.Bytes(), realAmount)

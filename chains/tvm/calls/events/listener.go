@@ -39,8 +39,8 @@ func (l *Fetcher) FetchDeposits(ctx context.Context, contractAddress address.Add
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 	query := url.Values{
-		"event_name":     []string{DepositEventName},
-		"only_confirmed": []string{"true"},
+		"event_name": []string{DepositEventName},
+		//"only_confirmed": []string{"true"},
 	}
 	if startTime != nil {
 		query.Set("min_block_timestamp", strconv.FormatInt(startTime.UnixMilli(), 10))
