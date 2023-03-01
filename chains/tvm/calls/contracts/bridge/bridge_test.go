@@ -54,7 +54,7 @@ func TestMain(m *testing.M) {
 	}
 	signer = tvmclient.NewAdapter(secp256k12.NewKeypair(*privateKey))
 
-	bridge = NewBridgeContract(client, signer, bridgeAddres)
+	bridge = NewBridgeContract(client, signer, bridgeAddres, 0)
 	os.Exit(m.Run())
 }
 

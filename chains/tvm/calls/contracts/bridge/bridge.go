@@ -30,10 +30,11 @@ type BridgeContract struct {
 	grpc            *client.GrpcClient
 	signer          tvmclient.Signer
 	contractAddress address.Address
+	feeLimit        int64
 }
 
-func NewBridgeContract(grpc *client.GrpcClient, signer tvmclient.Signer, contractAddress address.Address) *BridgeContract {
-	return &BridgeContract{grpc: grpc, signer: signer, contractAddress: contractAddress}
+func NewBridgeContract(grpc *client.GrpcClient, signer tvmclient.Signer, contractAddress address.Address, feeLimit int64) *BridgeContract {
+	return &BridgeContract{grpc: grpc, signer: signer, contractAddress: contractAddress, feeLimit: feeLimit}
 }
 
 func (c *BridgeContract) IsProposalVotedBy(by address.Address, p *proposal.Proposal) (bool, error) {
@@ -137,7 +138,7 @@ func (c *BridgeContract) voteProposal(p *proposal.Proposal) (*api.TransactionExt
 		c.contractAddress.String(),
 		"voteProposal(uint8,uint64,bytes32,bytes)",
 		params,
-		4000000000,
+		c.feeLimit,
 		0,
 		"",
 		0,
@@ -294,8 +295,8 @@ func (c *BridgeContract) deposit(
 		{"bytes32": hex.EncodeToString(resourceID[:])},
 		{"bytes": hex.EncodeToString(data)},
 	}
-	addr := c.signer.CommonAddress().String()
-	fmt.Println(addr)
+
+	// fixme use vars instead of constants
 	exTx, err := c.grpc.TriggerContractV2(
 		c.signer.CommonAddress().String(),
 		c.contractAddress.String(),

@@ -127,7 +127,7 @@ func Run() error {
 			if err != nil {
 				log.Panic().Err(err)
 			}
-			contract := tvmBridge.NewBridgeContract(grpcClient, signer, bridgeAddress)
+			contract := tvmBridge.NewBridgeContract(grpcClient, signer, bridgeAddress, cfg.GasLimit.Int64())
 			depositHandler := tvmListener.NewTronDepositHandler(contract)
 			depositHandler.RegisterDepositHandler(cfg.Erc20Handler, tvmListener.Erc20DepositHandler)
 			//depositHandler.RegisterDepositHandler(config.Erc721Handler, listener.Erc721DepositHandler)

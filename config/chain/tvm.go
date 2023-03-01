@@ -19,7 +19,7 @@ type TVMConfig struct {
 	TVMEventsConfig TVMEventsConfig
 	//MaxGasPrice        *big.Int
 	//GasMultiplier      *big.Float
-	//GasLimit           *big.Int
+	GasLimit           *big.Int
 	StartBlock         *big.Int
 	BlockConfirmations *big.Int
 	BlockInterval      *big.Int
@@ -40,7 +40,7 @@ type RawTVMConfig struct {
 	GenericHandler     string  `mapstructure:"genericHandler"`
 	MaxGasPrice        int64   `mapstructure:"maxGasPrice" default:"20000000000"`
 	GasMultiplier      float64 `mapstructure:"gasMultiplier" default:"1"`
-	GasLimit           int64   `mapstructure:"gasLimit" default:"2000000"`
+	GasLimit           int64   `mapstructure:"gasLimit" default:"4000000000"`
 	StartBlock         int64   `mapstructure:"startBlock"`
 	BlockConfirmations int64   `mapstructure:"blockConfirmations" default:"10"`
 	BlockInterval      int64   `mapstructure:"blockInterval" default:"5"`
@@ -88,7 +88,7 @@ func NewTVMConfig(chainConfig map[string]interface{}) (*TVMConfig, error) {
 		Bridge:             c.Bridge,
 		TVMEventsConfig:    c.TVMEventsConfig,
 		BlockRetryInterval: time.Duration(c.BlockRetryInterval) * time.Second,
-		//GasLimit:           big.NewInt(c.GasLimit),
+		GasLimit:           big.NewInt(c.GasLimit),
 		//MaxGasPrice:        big.NewInt(c.MaxGasPrice),
 		//GasMultiplier:      big.NewFloat(c.GasMultiplier),
 		StartBlock:         big.NewInt(c.StartBlock),
