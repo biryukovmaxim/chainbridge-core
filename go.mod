@@ -2,7 +2,7 @@ module github.com/ChainSafe/chainbridge-core
 
 go 1.19
 
-replace github.com/fbsobreira/gotron-sdk => /home/maksim/GolandProjects/gotron-sdk
+replace github.com/fbsobreira/gotron-sdk v0.0.0-20230214153418-3e50b8eeeb08 => github.com/biryukovmaxim/gotron-sdk v0.0.0-20230301064232-8e1ac14a90e0
 
 require (
 	github.com/centrifuge/go-substrate-rpc-client v2.0.0+incompatible
@@ -13,6 +13,7 @@ require (
 	github.com/imdario/mergo v0.3.12
 	github.com/pkg/errors v0.9.1
 	github.com/rs/zerolog v1.25.0
+	github.com/shengdoushi/base58 v1.0.0
 	github.com/spf13/cobra v1.2.1
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.9.0
@@ -28,10 +29,8 @@ require (
 )
 
 require (
-	github.com/karalabe/hid v1.0.0 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/pborman/uuid v1.2.1 // indirect
-	github.com/shengdoushi/base58 v1.0.0 // indirect
 	github.com/status-im/keycard-go v0.0.0-20211004132608-c32310e39b86 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
@@ -50,7 +49,7 @@ require (
 	github.com/gballet/go-libpcsclite v0.0.0-20190607065134-2772fd86a8ff // indirect
 	github.com/go-ole/go-ole v1.2.1 // indirect
 	github.com/go-stack/stack v1.8.0 // indirect
-	github.com/golang/protobuf v1.5.2 // indirect
+	github.com/golang/protobuf v1.5.2
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/uuid v1.1.5 // indirect
 	github.com/gorilla/websocket v1.4.2 // indirect
