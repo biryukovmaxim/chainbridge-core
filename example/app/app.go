@@ -5,11 +5,9 @@ package app
 
 import (
 	"context"
-	"math/big"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/ChainSafe/chainbridge-core/chains/evm"
 	"github.com/ChainSafe/chainbridge-core/chains/evm/calls/contracts/bridge"
@@ -106,50 +104,44 @@ func Run() error {
 				chains = append(chains, chain)
 			}
 		case "tvm":
-			const (
-				bridgeHex      = "TPH9cWgafMHhGmzL3ccaWX5gF7e8kbicZr"
-				testnet        = "https://api.shasta.trongrid.io/v1"
-				testKey        = "bc78f8bb-2e8d-4e18-9165-e4777e6e3fb6"
-				handlerAddress = "TBq9Rc5mPtq7tLHBxnHUXGkuaEDxrKX3ya"
-				testToken      = "TUfR8iZ1dPqndiSJv97vSbvkJcvtHLxxXr"
-			)
-			eventListener := tvmEvents.NewFetcher(testnet, testKey)
-			cfg, err := chain.NewEVMConfig(chainConfig)
+			cfg, err := chain.NewTVMConfig(chainConfig)
 			if err != nil {
 				panic(err)
 			}
+			domainID := *cfg.GeneralChainConfig.Id
+			eventListener := tvmEvents.NewFetcher(cfg.TVMEventsConfig.EventsBaseUrl, cfg.TVMEventsConfig.ApiKey)
 
 			privateKey, err := secp256k1.HexToECDSA(cfg.GeneralChainConfig.Key)
 			if err != nil {
 				panic(err)
 			}
 			signer := tvmclient.NewAdapter(secp256k12.NewKeypair(*privateKey))
-			grpcClient := tronClient.NewGrpcClient("grpc.shasta.trongrid.io:50051")
+			grpcClient := tronClient.NewGrpcClient(cfg.GeneralChainConfig.Endpoint)
 			if err := grpcClient.Start(grpc.WithInsecure()); err != nil {
 				log.Panic().Err(err)
 			}
 			defer grpcClient.Stop()
 
 			client := tvmclient.NewTronClient(grpcClient)
-			bridgeAddress, err := address.Base58ToAddress(bridgeHex)
+			bridgeAddress, err := address.Base58ToAddress(cfg.Bridge)
 			if err != nil {
 				log.Panic().Err(err)
 			}
 			contract := tvmBridge.NewBridgeContract(grpcClient, signer, bridgeAddress)
 			depositHandler := tvmListener.NewTronDepositHandler(contract)
-			depositHandler.RegisterDepositHandler(handlerAddress, tvmListener.Erc20DepositHandler)
+			depositHandler.RegisterDepositHandler(cfg.Erc20Handler, tvmListener.Erc20DepositHandler)
 			//depositHandler.RegisterDepositHandler(config.Erc721Handler, listener.Erc721DepositHandler)
 			//depositHandler.RegisterDepositHandler(config.GenericHandler, listener.GenericDepositHandler)
 			eventHandlers := make([]tvmListener.EventHandler, 0)
-			eventHandlers = append(eventHandlers, tvmListener.NewDepositEventHandler(eventListener, depositHandler, bridgeAddress, 2))
+			eventHandlers = append(eventHandlers, tvmListener.NewDepositEventHandler(eventListener, depositHandler, bridgeAddress, domainID))
 
-			evmListener := tvmListener.NewTVMListener(client, eventHandlers, blockstore, 2, time.Duration(0), big.NewInt(1), big.NewInt(10))
+			tvmListenerInstance := tvmListener.NewTVMListener(client, eventHandlers, blockstore, domainID, cfg.BlockRetryInterval, cfg.BlockConfirmations, cfg.BlockInterval)
 
 			mh := tvmExecutor.NewTVMMessageHandler(contract)
-			mh.RegisterMessageHandler(handlerAddress, tvmExecutor.ERC20MessageHandler)
+			mh.RegisterMessageHandler(cfg.Erc20Handler, tvmExecutor.ERC20MessageHandler)
 
 			voter := tvmExecutor.NewVoter(mh, signer, contract)
-			newChain := tvm.NewTVMChain(evmListener, voter, blockstore, 2, big.NewInt(31494927), false, false)
+			newChain := tvm.NewTVMChain(tvmListenerInstance, voter, blockstore, domainID, cfg.StartBlock, cfg.GeneralChainConfig.LatestBlock, cfg.GeneralChainConfig.FreshStart)
 			chains = append(chains, newChain)
 		default:
 			log.Warn().Msgf("type '%s' not recognized", chainConfig["type"])
