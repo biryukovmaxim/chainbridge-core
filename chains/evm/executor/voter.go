@@ -6,7 +6,6 @@ package executor
 import (
 	"context"
 	"fmt"
-	"math/big"
 	"math/rand"
 	"strings"
 	"time"
@@ -36,7 +35,6 @@ var (
 
 type ChainClient interface {
 	RelayerAddress() common.Address
-	CallContract(ctx context.Context, callArgs map[string]interface{}, blockNumber *big.Int) ([]byte, error)
 	SubscribePendingTransactions(ctx context.Context, ch chan<- common.Hash) (*rpc.ClientSubscription, error)
 	TransactionByHash(ctx context.Context, hash common.Hash) (tx *ethereumTypes.Transaction, isPending bool, err error)
 	calls.ContractCallerDispatcher
